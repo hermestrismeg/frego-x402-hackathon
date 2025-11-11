@@ -30,6 +30,14 @@ const paymentAddress = (process.env.PAYMENT_ADDRESS || '') as `0x${string}`;
 const paymentNetwork = process.env.PAYMENT_NETWORK || 'base-sepolia';
 const paymentPrice = process.env.PAYMENT_PRICE || '$0.001';
 
+// USDC contract addresses by network
+const USDC_CONTRACTS: Record<string, string> = {
+  'base-sepolia': '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+  'base': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+};
+
+const usdcContract = USDC_CONTRACTS[paymentNetwork] || USDC_CONTRACTS['base-sepolia'];
+
 app.use(
   paymentMiddleware(paymentAddress, {
     'POST /api/shipping/quote': {
@@ -176,9 +184,9 @@ app.post('/api/web/shipping/quote', async (req, res) => {
       paymentRequired: {
         amount: '0.001',
         currency: 'USDC',
-        network: 'base-sepolia',
+        network: paymentNetwork,
         recipient: paymentAddress,
-        usdcContract: '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+        usdcContract: usdcContract
       }
     });
   }
@@ -249,9 +257,9 @@ app.post('/api/web/shipping/label', async (req, res) => {
       paymentRequired: {
         amount: '0.001',
         currency: 'USDC',
-        network: 'base-sepolia',
+        network: paymentNetwork,
         recipient: paymentAddress,
-        usdcContract: '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
+        usdcContract: usdcContract
       }
     });
   }

@@ -4,6 +4,59 @@
 let walletConnected = false;
 let userAddress = null;
 let walletClient = null;
+let currentNetwork = 'base-sepolia'; // Will be set by server response
+
+// Network configuration
+const NETWORKS = {
+    'base-sepolia': {
+        chainId: '0x14a34', // 84532
+        chainName: 'Base Sepolia',
+        rpcUrls: ['https://sepolia.base.org'],
+        blockExplorerUrls: ['https://sepolia.basescan.org'],
+        nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 }
+    },
+    'base': {
+        chainId: '0x2105', // 8453
+        chainName: 'Base',
+        rpcUrls: ['https://mainnet.base.org'],
+        blockExplorerUrls: ['https://basescan.org'],
+        nativeCurrency: { name: 'Ethereum', symbol: 'ETH', decimals: 18 }
+    }
+};
+
+async function ensureCorrectNetwork(network) {
+    currentNetwork = network;
+    const networkConfig = NETWORKS[network];
+
+    if (!networkConfig) {
+        throw new Error(`Unsupported network: ${network}`);
+    }
+
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+    if (chainId !== networkConfig.chainId) {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: networkConfig.chainId }],
+            });
+        } catch (switchError) {
+            if (switchError.code === 4902) {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [networkConfig]
+                });
+            } else {
+                throw switchError;
+            }
+        }
+    }
+}
+
+function getBlockExplorerUrl(txHash) {
+    const networkConfig = NETWORKS[currentNetwork];
+    return `${networkConfig.blockExplorerUrls[0]}/tx/${txHash}`;
+}
 
 // Connect wallet
 document.getElementById('connectWallet').addEventListener('click', async () => {
@@ -17,39 +70,10 @@ document.getElementById('connectWallet').addEventListener('click', async () => {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         userAddress = accounts[0];
 
-        // Check if on Base Sepolia
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        const baseSepoliaChainId = '0x14a34'; // 84532 in hex
-
-        if (chainId !== baseSepoliaChainId) {
-            // Try to switch to Base Sepolia
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: baseSepoliaChainId }],
-                });
-            } catch (switchError) {
-                // Chain not added, try to add it
-                if (switchError.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [{
-                            chainId: baseSepoliaChainId,
-                            chainName: 'Base Sepolia',
-                            nativeCurrency: {
-                                name: 'Ethereum',
-                                symbol: 'ETH',
-                                decimals: 18
-                            },
-                            rpcUrls: ['https://sepolia.base.org'],
-                            blockExplorerUrls: ['https://sepolia.basescan.org']
-                        }]
-                    });
-                } else {
-                    throw switchError;
-                }
-            }
-        }
+        // Detect required network from first API call
+        // Will be set by server response
+        let requiredNetwork = null;
+        let requiredChainId = null;
 
         walletConnected = true;
         updateWalletUI();
@@ -124,6 +148,10 @@ async function getShippingQuotes(data) {
             // Payment required
             const paymentInfo = await response.json();
             console.log('Payment required:', paymentInfo.paymentRequired);
+
+            // Check if user is on correct network
+            const requiredNetwork = paymentInfo.paymentRequired.network;
+            await ensureCorrectNetwork(requiredNetwork);
 
             document.getElementById('loadingText').textContent = 'Please approve the payment in MetaMask...';
 
@@ -376,7 +404,7 @@ function displayLabelPurchased(label, carrier, service) {
             <p style="color: rgba(255, 255, 255, 0.9);"><strong>Cost:</strong> $${label.cost}</p>
             <p style="color: rgba(255, 255, 255, 0.9);"><strong>Tracking Number:</strong> <code>${label.trackingNumber}</code></p>
             <p style="color: rgba(255, 255, 255, 0.9);"><strong>Payment Transaction:</strong> <code style="font-size: 0.8em;">${label.paymentTxHash}</code></p>
-            <a href="https://sepolia.basescan.org/tx/${label.paymentTxHash}" target="_blank" style="color: #10b981; text-decoration: none; font-size: 0.9em; display: block; margin-top: 5px;">
+            <a href="${getBlockExplorerUrl(label.paymentTxHash)}" target="_blank" style="color: #10b981; text-decoration: none; font-size: 0.9em; display: block; margin-top: 5px;">
                 🔗 View payment on BaseScan
             </a>
             <a href="${label.labelUrl}" target="_blank" class="btn btn-primary" style="margin-top: 15px; display: inline-block;">

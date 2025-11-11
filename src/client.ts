@@ -1,7 +1,7 @@
 import { wrapFetchWithPayment } from 'x402-fetch';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { baseSepolia } from 'viem/chains';
+import { baseSepolia, base } from 'viem/chains';
 import { Address, ShippingQuote } from './types';
 
 export interface QuoteRequest {
