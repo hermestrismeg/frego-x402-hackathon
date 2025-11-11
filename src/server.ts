@@ -299,16 +299,22 @@ app.post('/api/web/shipping/label', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Shippo x402 AI Agent server running on port ${port}`);
-  console.log(`💰 Payment address: ${paymentAddress}`);
-  console.log(`🌐 Network: ${paymentNetwork}`);
-  console.log(`💵 Price per request: ${paymentPrice}`);
-  console.log(`\nEndpoints:`);
-  console.log(`  GET  /health - Health check (no payment required)`);
-  console.log(`  GET  / - Web UI`);
-  console.log(`  POST /api/web/shipping/quote - Web UI quotes (requires $0.001 USDC)`);
-  console.log(`  POST /api/web/shipping/label - Web UI label purchase (requires $0.001 USDC)`);
-  console.log(`  POST /api/shipping/quote - CLI quotes (requires x402 payment)`);
-  console.log(`  POST /api/shipping/label - CLI label purchase (requires x402 payment)`);
-});
+// Only start server if not in Vercel (Vercel handles this automatically)
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => {
+    console.log(`🚀 Shippo x402 AI Agent server running on port ${port}`);
+    console.log(`💰 Payment address: ${paymentAddress}`);
+    console.log(`🌐 Network: ${paymentNetwork}`);
+    console.log(`💵 Price per request: ${paymentPrice}`);
+    console.log(`\nEndpoints:`);
+    console.log(`  GET  /health - Health check (no payment required)`);
+    console.log(`  GET  / - Web UI`);
+    console.log(`  POST /api/web/shipping/quote - Web UI quotes (requires $0.001 USDC)`);
+    console.log(`  POST /api/web/shipping/label - Web UI label purchase (requires $0.001 USDC)`);
+    console.log(`  POST /api/shipping/quote - CLI quotes (requires x402 payment)`);
+    console.log(`  POST /api/shipping/label - CLI label purchase (requires x402 payment)`);
+  });
+}
+
+// Export for Vercel
+export default app;
