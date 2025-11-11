@@ -1,4 +1,4 @@
-# Shippo x402 AI Agent
+# Frego x402 AI Shipping Agent
 
 An AI-powered shipping label service that accepts x402 payments. This tool helps e-commerce sellers get the best shipping labels at great prices through an intelligent agent.
 
